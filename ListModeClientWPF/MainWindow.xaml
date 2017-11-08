@@ -4,24 +4,25 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ListModeClientWPF"
-        mc:Ignorable="d"
-        ResizeMode="CanMinimize"
-        Title="RemotePowerClient" Height="363.557" Width="654.657">
+        mc:Ignorable="d"                
+        Title="RemotePowerClient" Height="428.757" Width="882.657">
     <Grid>
         <ListBox Name="listBoxAvailableTasks" Margin="10,36,0,9.6" HorizontalAlignment="Left" Width="140"/>
         <Label Content="AvailableTasks:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-        <Button Content="Run" Name="buttonRunTask" Margin="300,0,0,9.6" HorizontalAlignment="Left" Width="151" Height="30" VerticalAlignment="Bottom"/>
-        <Label Content="Task to run:" HorizontalAlignment="Left" Margin="300,10,0,0" VerticalAlignment="Top"/>
-        <TextBox Name="textBoxChosenTaskToRun" IsReadOnly="True" Height="23" Margin="300,36,0,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991" HorizontalAlignment="Left" Width="151"/>
+        <Button Content="Run" Name="buttonRunTask" Margin="0,0,187,9.6" Height="30" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="157"/>
+        <Label Content="Task to run:" HorizontalAlignment="Right" Margin="0,10,271,0" VerticalAlignment="Top" Width="73"/>
+        <TextBox Name="textBoxChosenTaskToRun" IsReadOnly="True" Height="23" Margin="0,36,187,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991" HorizontalAlignment="Right" Width="157"/>
         <ListBox Name="listBoxRunningTasks" Margin="155,36,0,9.6" HorizontalAlignment="Left" Width="140"/>
         <Label Content="RunningTasks:" HorizontalAlignment="Left" Margin="155,10,0,0" VerticalAlignment="Top"/>
-        <TextBox Name="textBoxTaskArgs" Margin="300,90,0,44.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Left" Width="151"/>
-        <Label Content="Arguments:" HorizontalAlignment="Left" Margin="300,64,0,0" VerticalAlignment="Top"/>
-        <Button Content="Stop" x:Name="buttonStopTask" Margin="456,0,10,9.6" VerticalAlignment="Bottom" Height="30"/>
-        <Label Content="Running task:" Margin="456,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="77"/>
-        <TextBox x:Name="textBoxChosenRunningTask" IsReadOnly="True" Height="23" Margin="456,36,10,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991"/>
-        <TextBox x:Name="textBoxTaskOutput" IsReadOnly="True" Margin="456,90,10,69.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"/>
-        <Label Content="Feedback:" Margin="456,64,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="77"/>
-        <ProgressBar x:Name="progressBarRunningTask" Margin="456,0,10,44.6" Minimum="0" Maximum="100" Height="20" VerticalAlignment="Bottom"/>
+        <TextBox Name="textBoxTaskArgs" Margin="0,90,187,44.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Right" Width="157" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
+        <Label Content="Arguments:" HorizontalAlignment="Right" Margin="0,64,271,0" VerticalAlignment="Top" Width="73"/>
+        <Button Content="Stop" x:Name="buttonStopTask" Margin="0,0,10,9.6" VerticalAlignment="Bottom" Height="30" HorizontalAlignment="Right" Width="172"/>
+        <Label Content="Running task:" Margin="0,10,92,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="90"/>
+        <TextBox x:Name="textBoxChosenRunningTask" IsReadOnly="True" Height="23" Margin="0,36,10,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991" HorizontalAlignment="Right" Width="172"/>
+        <TextBox x:Name="textBoxTaskOutput" IsReadOnly="True" Margin="0,90,10,69.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Right" Width="172" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
+        <Label Content="Feedback:" Margin="0,64,92,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="90"/>
+        <ProgressBar x:Name="progressBarRunningTask" Margin="0,0,10,44.6" Minimum="0" Maximum="100" Height="20" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="172"/>
+        <TextBox x:Name="textBoxErrors" Margin="300,36,349,9.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
+        <Label Content="Errors:" HorizontalAlignment="Left" Margin="300,10,0,0" VerticalAlignment="Top" Width="73"/>
     </Grid>
 </Window>

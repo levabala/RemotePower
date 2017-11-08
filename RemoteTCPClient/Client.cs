@@ -50,6 +50,8 @@ namespace RemoteTCPClient
         public string hostname = "127.0.0.1";
         public int port = 0;
 
+        private Thread listneingLoopThread;
+
         public Client()
         {
             provider = new RSACryptoServiceProvider(512);
@@ -62,6 +64,18 @@ namespace RemoteTCPClient
             provider.FromXmlString(xmlRsaParams);
             xmlPublicKey = provider.ToXmlString(false);            
         }        
+
+        public void ShutDown()
+        {
+            if (sessionActive)
+            {
+                new PowerMessage(MessageType.EndSession).Serialize(stream);
+                client.Close();
+                stream.Close();
+                sessionActive = false;
+            }
+            listneingLoopThread.Abort();
+        }
 
         public void init()
         {
@@ -85,10 +99,11 @@ namespace RemoteTCPClient
             greet();
             requestAuthentication();
 
-            new Thread(() =>
+            listneingLoopThread = new Thread(() =>
             {
                 launchListeningLoop();
-            }).Start();
+            });
+            listneingLoopThread.Start();
         }
 
         public void init(string hostname, int port)

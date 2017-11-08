@@ -37,24 +37,25 @@ namespace ListModeClientWPF
         public void init()
         {
             client = new MyClient();
-            client.restoreConfiguration();
-            client.init(/*type your server ip&port here*/);
+            client.restoreConfiguration();            
 
             client.OnTasksListGot += Client_OnTasksListGot;
             client.OnPowerMessageProcessed += Client_OnPowerMessageProcessed;
             client.OnTaskInitialized += Client_OnTaskInitialized;
             client.OnTaskFinished += Client_OnTaskFinished;
-            client.OnError += Client_OnError;
+            client.OnError += Client_OnError;            
 
             //ui events
-            buttonRunTask.Click += ButtonRunTask_Click;            
+            buttonRunTask.Click += ButtonRunTask_Click;
+
+            //start
+            client.init(/*type your server ip&port here*/);
         }
 
         private void Client_OnTasksListGot(object sender, PowerTasksDictionary dictionary)
         {
-            //let's force it            
-            //client.initTask("SummatorCPUTask", new object[] { @"-raw D:\Documents\Projects\LM_WORLD\Files\simple_Fe_up960_raw.014 -dor".Split(' ') },
-            client.initTask("SummatorCPUTask", new object[] { @"-raw U:\2017\October\012616\012616_raw.001 -dor".Split(' ') },
+            //let's force it                        
+            client.initTask("SummatorCPUTask", new object[] { @"-raw U:\2017\October\012616\012616_raw.001 -det 0".Split(' ') },
                 (PowerTaskProgress t) =>
                 {
                     runOnUIThread(() => { progressBarRunningTask.Value = t.progress; });
@@ -75,10 +76,8 @@ namespace ListModeClientWPF
 
         private void Client_OnError(object sender, string discription, Exception e)
         {
-            runOnUIThread(() =>
-            {
-                //Application.Current.Shutdown();
-            });
+            textBoxErrors.Text += e.Message.ToString() + "\n\n";      
+            textBoxErrors.ScrollToEnd();
         }
 
         private void ButtonRunTask_Click(object sender, RoutedEventArgs e)
@@ -126,7 +125,8 @@ namespace ListModeClientWPF
                         int[][] spectr = ((int[][])(((PowerTaskResult)mess.value).result));
                         foreach (int[] arr in spectr)
                             valuesCount += arr.Length;
-                        textBoxTaskOutput.Text += "Got" + valuesCount.ToString() + " values\n";
+                        textBoxTaskOutput.Text += "Got " + valuesCount.ToString() + " values\n";
+                        textBoxTaskOutput.ScrollToEnd();
                         break;
                 }
             });
@@ -143,8 +143,16 @@ namespace ListModeClientWPF
         }
 
         private void runOnUIThread(Action action)
+        {            
+            if (Application.Current != null)
+                Application.Current.Dispatcher.Invoke(action);
+        }
+
+        protected override void OnClosed(EventArgs e)
         {
-            Application.Current.Dispatcher.Invoke(action);
+            base.OnClosed(e);
+            Application.Current.Shutdown();
+            client.ShutDown();
         }
     }
 }
