@@ -10,6 +10,7 @@ using RemoteTCPServer;
 using System.Threading;
 using System.Globalization;
 using System.Configuration;
+using System.Net;
 
 namespace RemoteTCPClient
 {
@@ -21,7 +22,7 @@ namespace RemoteTCPClient
         public delegate void PowerMessageProcessedHandler(object sender, PowerMessage mess);
         public event PowerMessageProcessedHandler OnPowerMessageProcessed;
 
-        public delegate void TasksListGotHandler(object sender, PowerTasksDictionary dictionary);
+        public delegate void TasksListGotHandler(object sender, Dictionary<string, PowerTaskFunc> dictionary);
         public event TasksListGotHandler OnTasksListGot;
 
         public delegate void TaskFinishedHandler(object sender, PowerTask task, PowerMessage mess, bool success);
@@ -34,7 +35,7 @@ namespace RemoteTCPClient
         public event ErrorHandler OnError;
 
 
-        public PowerTasksDictionary availableTasks = new PowerTasksDictionary();
+        public Dictionary<string, PowerTaskFunc> availableTasks = new Dictionary<string, PowerTaskFunc>();
         public Dictionary<int, Action<int>> initTasksCallback = new Dictionary<int, Action<int>>();
         public Dictionary<int, Action<PowerTaskResult>> runningTasksComplete = new Dictionary<int, Action<PowerTaskResult>>();
         public Dictionary<int, Action<PowerTaskResult>> runningTasksResult= new Dictionary<int, Action<PowerTaskResult>>();
@@ -50,6 +51,8 @@ namespace RemoteTCPClient
         public string hostname = "127.0.0.1";
         public int port = 0;
 
+        private Thread listneingLoopThread;
+
         public Client()
         {
             provider = new RSACryptoServiceProvider(512);
@@ -62,6 +65,23 @@ namespace RemoteTCPClient
             provider.FromXmlString(xmlRsaParams);
             xmlPublicKey = provider.ToXmlString(false);            
         }        
+
+        public void ShutDown()
+        {
+            if (sessionActive)
+            {                
+                if (client != null)
+                    client.Close();
+                if (stream != null)
+                {
+                    new PowerMessage(MessageType.EndSession).Serialize(stream);
+                    stream.Close();
+                }
+                sessionActive = false;
+            }
+            if (listneingLoopThread != null)
+                listneingLoopThread.Abort();
+        }
 
         public void init()
         {
@@ -85,10 +105,11 @@ namespace RemoteTCPClient
             greet();
             requestAuthentication();
 
-            new Thread(() =>
+            listneingLoopThread = new Thread(() =>
             {
                 launchListeningLoop();
-            }).Start();
+            });
+            listneingLoopThread.Start();
         }
 
         public void init(string hostname, int port)
@@ -103,6 +124,8 @@ namespace RemoteTCPClient
         {
             Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);            
             conf.AppSettings.Settings.Remove("RSAParams");
+            conf.AppSettings.Settings.Remove("Hostname");
+            conf.AppSettings.Settings.Remove("Port");
             conf.Save(ConfigurationSaveMode.Full);
         }
 
@@ -131,8 +154,10 @@ namespace RemoteTCPClient
             conf.Save(ConfigurationSaveMode.Full);
         }
 
-        public void restoreConfiguration()
+        public bool restoreConfiguration()
         {
+            bool configurationAlreadySet = true;
+
             Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             var rsaParamsXML = conf.AppSettings.Settings["RSAParams"];
             if (rsaParamsXML != null)
@@ -144,17 +169,25 @@ namespace RemoteTCPClient
 
             var hostnameParam = conf.AppSettings.Settings["Hostname"];
             if (hostnameParam == null)
-                conf.AppSettings.Settings.Add("Hostname", hostname);
-            else
-                hostname = conf.AppSettings.Settings["Hostname"].Value;
+                configurationAlreadySet = false;
+            else {
+                IPAddress address;
+                if (IPAddress.TryParse(conf.AppSettings.Settings["Hostname"].Value, out address))
+                    hostname = conf.AppSettings.Settings["Hostname"].Value;
+                else
+                    configurationAlreadySet = false;
+                }
 
             var portParam = conf.AppSettings.Settings["Port"];
             if (portParam == null)
-                conf.AppSettings.Settings.Add("Port", port.ToString());
-            else
-                port = Int32.Parse(conf.AppSettings.Settings["Port"].Value);
+                configurationAlreadySet = false;
+            else            
+                if (!Int32.TryParse(conf.AppSettings.Settings["Port"].Value, out port))
+                    configurationAlreadySet = false;            
 
             conf.Save(ConfigurationSaveMode.Full);
+
+            return configurationAlreadySet;
         }
 
         public void launchListeningLoop()
@@ -214,7 +247,7 @@ namespace RemoteTCPClient
                         if (mess.details != Details.OK)
                             break;
 
-                        availableTasks = (PowerTasksDictionary)mess.value;
+                        availableTasks = (Dictionary<string, PowerTaskFunc>)mess.value;
                         OnTasksListGot(this, availableTasks);
                         break;
                     case MessageType.TaskInitResult:

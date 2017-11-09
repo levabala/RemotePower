@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.VisualBasic;
 
 namespace ListModeClientWPF
 {
@@ -23,38 +24,68 @@ namespace ListModeClientWPF
     public partial class MainWindow : Window
     {
         MyClient client;
-        int watchingTaskId = -1;
-        string taskNameToRun = "";
-        Dictionary<int, string> tasksStack = new Dictionary<int, string>();
+        int watchingTaskId;
+        string taskNameToRun;
+        Dictionary<int, string> tasksStack;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            init();
+            initClient();
+
+            buttonRunTask.Click += ButtonRunTask_Click;
+            buttonReconnect.Click += ButtonReconnect_Click;
         }
 
-        public void init()
+        public void initClient()
         {
-            client = new MyClient();
-            client.restoreConfiguration();
-            client.init(/*type your server ip&port here*/);
+            if (client != null)
+                client.ShutDown();
+
+            watchingTaskId = -1;
+            taskNameToRun = "";
+            tasksStack = new Dictionary<int, string>();
+
+            client = new MyClient();            
+            if (!client.restoreConfiguration())
+            {
+                InputDialog dialog = new InputDialog();
+                dialog.ShowDialog();
+                client.port = dialog.ServerPort;
+                client.hostname = dialog.ServerIP;
+            }
+            client.saveConfiguration();
 
             client.OnTasksListGot += Client_OnTasksListGot;
             client.OnPowerMessageProcessed += Client_OnPowerMessageProcessed;
             client.OnTaskInitialized += Client_OnTaskInitialized;
             client.OnTaskFinished += Client_OnTaskFinished;
-            client.OnError += Client_OnError;
+            client.OnError += Client_OnError;                        
 
-            //ui events
-            buttonRunTask.Click += ButtonRunTask_Click;            
+            //start
+            client.init(/*type your server ip&port here*/);
         }
 
-        private void Client_OnTasksListGot(object sender, PowerTasksDictionary dictionary)
+        private void ButtonReconnect_Click(object sender, RoutedEventArgs e)
         {
-            //let's force it            
-            //client.initTask("SummatorCPUTask", new object[] { @"-raw D:\Documents\Projects\LM_WORLD\Files\simple_Fe_up960_raw.014 -dor".Split(' ') },
-            client.initTask("SummatorCPUTask", new object[] { @"-raw U:\2017\October\012616\012616_raw.001 -dor".Split(' ') },
+            textBoxChosenRunningTask.Text =
+                textBoxChosenTaskToRun.Text =
+                textBoxErrors.Text =
+                textBoxTaskArgs.Text =
+                textBoxTaskOutput.Text =
+                ""; // >_<
+
+            listBoxAvailableTasks.Items.Clear();
+            listBoxRunningTasks.Items.Clear();
+
+            initClient();
+        }
+
+        private void Client_OnTasksListGot(object sender, Dictionary<string, PowerTaskFunc> dictionary)
+        {
+            //let's force it                        
+            client.initTask("SummatorCPUTask", new object[] { @"-raw U:\2017\October\012616\012616_raw.001 -det 0".Split(' ') },
                 (PowerTaskProgress t) =>
                 {
                     runOnUIThread(() => { progressBarRunningTask.Value = t.progress; });
@@ -77,12 +108,16 @@ namespace ListModeClientWPF
         {
             runOnUIThread(() =>
             {
-                //Application.Current.Shutdown();
+                textBoxErrors.Text += e.Message.ToString() + "\n\n";
+                textBoxErrors.ScrollToEnd();
             });
         }
 
         private void ButtonRunTask_Click(object sender, RoutedEventArgs e)
         {
+            if (!client.availableTasks.ContainsKey(taskNameToRun))
+                return;
+
             client.initTask(taskNameToRun, new object[] { textBoxTaskArgs.Text.Split(' ') },
                 (PowerTaskProgress t) =>
                 {
@@ -123,10 +158,16 @@ namespace ListModeClientWPF
                         break;                    
                     case MessageType.TaskResult:
                         int valuesCount = 0;
-                        int[][] spectr = ((int[][])(((PowerTaskResult)mess.value).result));
+                        PowerTaskResult res = (PowerTaskResult)mess.value;
+                        int[][] spectr = ((int[][])(res).result);
                         foreach (int[] arr in spectr)
                             valuesCount += arr.Length;
-                        textBoxTaskOutput.Text += "Got" + valuesCount.ToString() + " values\n";
+                        tasksStack[res.taskId] += "Got " + valuesCount.ToString() + " values\n";
+                        if (watchingTaskId == res.taskId)
+                        {
+                            textBoxTaskOutput.Text = tasksStack[res.taskId];
+                            textBoxTaskOutput.ScrollToEnd();
+                        }
                         break;
                 }
             });
@@ -135,16 +176,59 @@ namespace ListModeClientWPF
         private void Client_OnTaskFinished(object sender, PowerTask task, PowerMessage mess, bool success)
         {
             tasksStack.Remove(task.taskId);
+            if (watchingTaskId != task.taskId)
+                return;
+
+            if (tasksStack.Count == 0)
+                watchingTaskId = -1;
+            else
+            {
+                watchingTaskId = tasksStack.Keys.First();
+                int index = 0;
+                foreach (var item in listBoxRunningTasks.Items)
+                {
+                    if (item.ToString().Split(':').Skip(2).ToString() == watchingTaskId.ToString()) //костыыыыыыыыыыыль
+                        listBoxRunningTasks.SelectedIndex = index;
+                    index++;
+                }
+            }
         }
 
         private void Client_OnTaskInitialized(object sender, PowerTaskFunc taskFunc, PowerTaskArgs taskArgs)
         {
-            
+            tasksStack.Add(taskArgs.taskId, taskArgs.taskName + "\n");
+
+            runOnUIThread(() =>
+            {
+                ListBoxItem item = new ListBoxItem();
+                item.Content = "id" + taskArgs.taskId.ToString() + ": " + taskArgs.taskName;
+                item.PreviewMouseDown += (it, arg) =>
+                {
+                    textBoxChosenTaskToRun.Text = taskArgs.taskName;
+                    watchingTaskId = taskArgs.taskId;
+                    textBoxTaskOutput.Text = tasksStack[taskArgs.taskId];
+                };
+                listBoxRunningTasks.Items.Add(item);
+
+                if (watchingTaskId == -1)
+                {
+                    watchingTaskId = taskArgs.taskId;
+                    listBoxRunningTasks.SelectedIndex = 0;
+                }
+            });
         }
 
         private void runOnUIThread(Action action)
+        {            
+            if (Application.Current != null)
+                Application.Current.Dispatcher.Invoke(action);
+        }
+
+        protected override void OnClosed(EventArgs e)
         {
-            Application.Current.Dispatcher.Invoke(action);
+            base.OnClosed(e);
+            client.ShutDown();
+            Application.Current.Shutdown();
         }
     }
 }
