@@ -18,9 +18,10 @@ namespace RemoteTCPServer
         public delegate void UserRegisteredHandler(object sender, User user);
         public event UserRegisteredHandler OnUserRegisteredFinished;
 
-        public static PowerTasksDictionary tasks;        
-        public Dictionary<int, string> runningTasks = new Dictionary<int, string>();
+        public static Dictionary<string, PowerTaskFunc> availableTasks;        
+        public Dictionary<int, PowerTaskThread> runningTasks = new Dictionary<int, PowerTaskThread>();
         public Dictionary<string, User> users;
+        public Dictionary<string, Dictionary<int, PowerTaskThread>> usersTasks = new Dictionary<string, Dictionary<int, PowerTaskThread>>();
 
         protected readonly int port;
         protected TcpListener server;
@@ -30,7 +31,7 @@ namespace RemoteTCPServer
         {
             OnUserRegisteredFinished += (a, b) => { };
 
-            tasks = CreateTasks();
+            availableTasks = CreateTasks();
 
             this.port = port;            
             registrate = defaultRegistration;
@@ -105,6 +106,9 @@ namespace RemoteTCPServer
             else
                 users = dictionaryFromString(conf.AppSettings.Settings["Users"].Value);
             conf.Save(ConfigurationSaveMode.Full);
+
+            foreach (User user in users.Values)
+                usersTasks[user.publicKey] = new Dictionary<int, PowerTaskThread>();
         }
 
         private string dictionaryToString(Dictionary<string, User> dictionary)
@@ -171,6 +175,7 @@ namespace RemoteTCPServer
 
             bool sessionActive = true;
             bool authorized = false;
+            IPEndPoint clientIp = (IPEndPoint)client.Client.RemoteEndPoint;
             User user = null;
             RSACryptoServiceProvider provider = new RSACryptoServiceProvider(512);
             byte[] token = new byte[0];            
@@ -196,6 +201,7 @@ namespace RemoteTCPServer
                             new PowerMessage(MessageType.Greeting).Serialize(stream);
                             break;
                         case MessageType.EndSession:
+                            Console.WriteLine(clientIp.ToString() + " disconnected");
                             sessionActive = false;
                             break;
                         case MessageType.AuthInit:
@@ -231,11 +237,12 @@ namespace RemoteTCPServer
                                 break;
                             }
 
-                            bool toRegistrate = registrate(pkey, ((IPEndPoint)client.Client.RemoteEndPoint).ToString());
+                            bool toRegistrate = registrate(pkey, clientIp.ToString());
                             if (toRegistrate)
                             {
                                 provider.FromXmlString(pkey);                                
                                 users[pkey] = new User(pkey);
+                                usersTasks[pkey] = new Dictionary<int, PowerTaskThread>();
                                 new PowerMessage(MessageType.RegistrationResult, Details.Success).Serialize(stream);
 
                                 OnUserRegisteredFinished(this, users[pkey]);
@@ -247,7 +254,7 @@ namespace RemoteTCPServer
                         case MessageType.TaskInit:
                             //task searching
                             PowerTaskArgs taskArgs = (PowerTaskArgs)mess.value;
-                            initTask(taskArgs, stream);
+                            initTask(taskArgs, stream, user);
 
                             break;
                         case MessageType.TasksList:
@@ -257,7 +264,7 @@ namespace RemoteTCPServer
                                 break;
                             }
 
-                            new PowerMessage(MessageType.TasksList, tasks, Details.OK).Serialize(stream);
+                            new PowerMessage(MessageType.TasksList, availableTasks, Details.OK).Serialize(stream);
                             break;
                     }
                 }
@@ -269,11 +276,11 @@ namespace RemoteTCPServer
             }                        
 
             client.Close();
-        }
+        }        
 
-        private void initTask(PowerTaskArgs taskArgs, NetworkStream stream)
+        private void initTask(PowerTaskArgs taskArgs, NetworkStream stream, User user)
         {
-            if (!tasks.ContainsKey(taskArgs.taskName))
+            if (!availableTasks.ContainsKey(taskArgs.taskName))
             {
                 new PowerMessage(MessageType.TaskInitResult, taskArgs.taskId, Details.NoSuchTask).Serialize(stream);
                 return;
@@ -291,23 +298,26 @@ namespace RemoteTCPServer
             Action<PowerTaskResult> completeCallback = (taskpower) =>
             {
                 runningTasks.Remove(taskpower.taskId);
+                usersTasks[user.publicKey].Remove(taskpower.taskId);
                 new PowerMessage(MessageType.TaskComplete, taskpower).Serialize(stream);
             };
             Action<PowerTaskError> errorCallback = (taskpower) =>
             {
                 if (taskpower.fatal)
+                {
                     runningTasks.Remove(taskpower.taskId);
+                    usersTasks[user.publicKey].Remove(taskpower.taskId);
+                }
                 new PowerMessage(MessageType.TaskError, taskpower).Serialize(stream);
             };
 
             int id = 0;
             while (runningTasks.ContainsKey(id))
                 id++;
-            runningTasks[id] = taskArgs.taskName;            
 
-            new Thread(() =>
+            PowerTaskThread powerThread = new PowerTaskThread(id, taskArgs.taskName, new Thread(() =>
             {
-                PowerTaskFunc powerTaskFunc = tasks[taskArgs.taskName];
+                PowerTaskFunc powerTaskFunc = availableTasks[taskArgs.taskName];
                 try
                 {
                     powerTaskFunc.func(taskArgs, progressCallback, resultCallback, completeCallback, errorCallback);
@@ -316,13 +326,16 @@ namespace RemoteTCPServer
                 {
                     errorCallback(new PowerTaskError(id, taskArgs.taskName, true, e));
                 }
-            }).Start();
+            }));
+            runningTasks[id] = powerThread;
+            usersTasks[user.publicKey][powerThread.taskId] = powerThread;
+            powerThread.thread.Start();
 
             //new int[] {task.taskId, id} - here we put 1st is ClientTaskId and 2nd is ServerTaskId
             new PowerMessage(MessageType.TaskInitResult, new PowerTaskIds(id, taskArgs.taskName, taskArgs.taskId), Details.Accepted).Serialize(stream);
         }
 
-        protected abstract PowerTasksDictionary CreateTasks();
+        protected abstract Dictionary<string, PowerTaskFunc> CreateTasks();
 
         public class ByteArrayComparer : IEqualityComparer<byte[]>
         {
