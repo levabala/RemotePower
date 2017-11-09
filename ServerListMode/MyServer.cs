@@ -11,7 +11,7 @@ namespace ServerListMode
 {
     class MyServer : Server
     {
-        new public static PowerTasksDictionary tasks = new PowerTasksDictionary();
+        new public static Dictionary<string, PowerTaskFunc> tasks = new Dictionary<string, PowerTaskFunc>();
         static string workingDirectory = @"U:\";
 
         public MyServer(int port)
@@ -20,10 +20,10 @@ namespace ServerListMode
             
         }
 
-        protected override PowerTasksDictionary CreateTasks()
+        protected override Dictionary<string, PowerTaskFunc> CreateTasks()
         {
-            PowerTasksDictionary tasksDictionary = new PowerTasksDictionary();
-            tasksDictionary.Add(SummatorCPUTask);
+            Dictionary<string, PowerTaskFunc> tasksDictionary = new Dictionary<string, PowerTaskFunc>();
+            tasksDictionary.Add(SummatorCPUTask.taskName, SummatorCPUTask);
             return tasksDictionary;
         }
         
@@ -191,6 +191,7 @@ namespace ServerListMode
                 if (!Directory.Exists(ref_out)) Directory.CreateDirectory(ref_out);
                 #endregion
 
+                object lockObj = new object();
                 Summator summator = new SummatorCPU(ref_chan, max_mks, dets.ToArray(), strob);                                
                 Parser.Parse(
                     namelist, strob, ref_chan, max_mks, ref_frames, ref_tau,
@@ -202,8 +203,11 @@ namespace ServerListMode
                         summator.SaveSpectrum(ref_out, number, spectr);
                         savesDone++;
 
-                        result(new PowerTaskResult(taskId, taskName, spectr));
-                        progress(new PowerTaskProgress(taskId, taskName, parsing));
+                        lock (lockObj)
+                        {
+                            result(new PowerTaskResult(taskId, taskName, spectr));
+                            progress(new PowerTaskProgress(taskId, taskName, parsing));
+                        }
                     }, () =>
                     {
                         //parsing complete
