@@ -10,6 +10,7 @@ using RemoteTCPServer;
 using System.Threading;
 using System.Globalization;
 using System.Configuration;
+using System.Net;
 
 namespace RemoteTCPClient
 {
@@ -68,13 +69,18 @@ namespace RemoteTCPClient
         public void ShutDown()
         {
             if (sessionActive)
-            {
-                new PowerMessage(MessageType.EndSession).Serialize(stream);
-                client.Close();
-                stream.Close();
+            {                
+                if (client != null)
+                    client.Close();
+                if (stream != null)
+                {
+                    new PowerMessage(MessageType.EndSession).Serialize(stream);
+                    stream.Close();
+                }
                 sessionActive = false;
             }
-            listneingLoopThread.Abort();
+            if (listneingLoopThread != null)
+                listneingLoopThread.Abort();
         }
 
         public void init()
@@ -118,6 +124,8 @@ namespace RemoteTCPClient
         {
             Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);            
             conf.AppSettings.Settings.Remove("RSAParams");
+            conf.AppSettings.Settings.Remove("Hostname");
+            conf.AppSettings.Settings.Remove("Port");
             conf.Save(ConfigurationSaveMode.Full);
         }
 
@@ -146,8 +154,10 @@ namespace RemoteTCPClient
             conf.Save(ConfigurationSaveMode.Full);
         }
 
-        public void restoreConfiguration()
+        public bool restoreConfiguration()
         {
+            bool configurationAlreadySet = true;
+
             Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             var rsaParamsXML = conf.AppSettings.Settings["RSAParams"];
             if (rsaParamsXML != null)
@@ -159,17 +169,25 @@ namespace RemoteTCPClient
 
             var hostnameParam = conf.AppSettings.Settings["Hostname"];
             if (hostnameParam == null)
-                conf.AppSettings.Settings.Add("Hostname", hostname);
-            else
-                hostname = conf.AppSettings.Settings["Hostname"].Value;
+                configurationAlreadySet = false;
+            else {
+                IPAddress address;
+                if (IPAddress.TryParse(conf.AppSettings.Settings["Hostname"].Value, out address))
+                    hostname = conf.AppSettings.Settings["Hostname"].Value;
+                else
+                    configurationAlreadySet = false;
+                }
 
             var portParam = conf.AppSettings.Settings["Port"];
             if (portParam == null)
-                conf.AppSettings.Settings.Add("Port", port.ToString());
-            else
-                port = Int32.Parse(conf.AppSettings.Settings["Port"].Value);
+                configurationAlreadySet = false;
+            else            
+                if (!Int32.TryParse(conf.AppSettings.Settings["Port"].Value, out port))
+                    configurationAlreadySet = false;            
 
             conf.Save(ConfigurationSaveMode.Full);
+
+            return configurationAlreadySet;
         }
 
         public void launchListeningLoop()

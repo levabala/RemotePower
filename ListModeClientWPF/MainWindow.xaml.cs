@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Microsoft.VisualBasic;
 
 namespace ListModeClientWPF
 {
@@ -36,8 +37,12 @@ namespace ListModeClientWPF
 
         public void init()
         {
-            client = new MyClient();
-            client.restoreConfiguration();            
+            client = new MyClient();            
+            if (!client.restoreConfiguration())
+            {
+                client.hostname = Interaction.InputBox("Enter your server ip", "Server IP request", "127.0.0.1");
+                Int32.TryParse(Interaction.InputBox("Enter your server port number", "Server port request", "5555"), out client.port);
+            }                            
 
             client.OnTasksListGot += Client_OnTasksListGot;
             client.OnPowerMessageProcessed += Client_OnPowerMessageProcessed;
@@ -76,12 +81,18 @@ namespace ListModeClientWPF
 
         private void Client_OnError(object sender, string discription, Exception e)
         {
-            textBoxErrors.Text += e.Message.ToString() + "\n\n";      
-            textBoxErrors.ScrollToEnd();
+            runOnUIThread(() =>
+            {
+                textBoxErrors.Text += e.Message.ToString() + "\n\n";
+                textBoxErrors.ScrollToEnd();
+            });
         }
 
         private void ButtonRunTask_Click(object sender, RoutedEventArgs e)
         {
+            if (!client.availableTasks.ContainsKey(taskNameToRun))
+                return;
+
             client.initTask(taskNameToRun, new object[] { textBoxTaskArgs.Text.Split(' ') },
                 (PowerTaskProgress t) =>
                 {
@@ -151,8 +162,8 @@ namespace ListModeClientWPF
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-            Application.Current.Shutdown();
             client.ShutDown();
+            Application.Current.Shutdown();
         }
     }
 }
