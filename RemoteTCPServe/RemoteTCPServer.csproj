@@ -49,7 +49,6 @@
     <Compile Include="PowerTask\PowerTaskIds.cs" />
     <Compile Include="PowerTask\PowerTaskProgress.cs" />
     <Compile Include="PowerTask\PowerTaskResult.cs" />
-    <Compile Include="PowerTask\PowerTasksDictionary.cs" />
     <Compile Include="PowerTask\PowerTaskThread.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Details.cs" />

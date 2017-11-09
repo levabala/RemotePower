@@ -11,7 +11,7 @@ namespace ServerListMode
 {
     class MyServer : Server
     {
-        new public static PowerTasksDictionary tasks = new PowerTasksDictionary();
+        new public static Dictionary<string, PowerTaskFunc> tasks = new Dictionary<string, PowerTaskFunc>();
         static string workingDirectory = @"U:\";
 
         public MyServer(int port)
@@ -20,10 +20,10 @@ namespace ServerListMode
             
         }
 
-        protected override PowerTasksDictionary CreateTasks()
+        protected override Dictionary<string, PowerTaskFunc> CreateTasks()
         {
-            PowerTasksDictionary tasksDictionary = new PowerTasksDictionary();
-            tasksDictionary.Add(SummatorCPUTask);
+            Dictionary<string, PowerTaskFunc> tasksDictionary = new Dictionary<string, PowerTaskFunc>();
+            tasksDictionary.Add(SummatorCPUTask.taskName, SummatorCPUTask);
             return tasksDictionary;
         }
         

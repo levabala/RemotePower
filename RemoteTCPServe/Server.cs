@@ -335,7 +335,7 @@ namespace RemoteTCPServer
             new PowerMessage(MessageType.TaskInitResult, new PowerTaskIds(id, taskArgs.taskName, taskArgs.taskId), Details.Accepted).Serialize(stream);
         }
 
-        protected abstract PowerTasksDictionary CreateTasks();
+        protected abstract Dictionary<string, PowerTaskFunc> CreateTasks();
 
         public class ByteArrayComparer : IEqualityComparer<byte[]>
         {
