@@ -22,7 +22,8 @@
         <TextBox x:Name="textBoxTaskOutput" IsReadOnly="True" Margin="0,90,10,69.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Right" Width="172" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
         <Label Content="Feedback:" Margin="0,64,92,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="90"/>
         <ProgressBar x:Name="progressBarRunningTask" Margin="0,0,10,44.6" Minimum="0" Maximum="100" Height="20" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="172"/>
-        <TextBox x:Name="textBoxErrors" Margin="300,36,349,9.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
+        <TextBox x:Name="textBoxErrors" Margin="300,36,349,44.2" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
         <Label Content="Errors:" HorizontalAlignment="Left" Margin="300,10,0,0" VerticalAlignment="Top" Width="73"/>
+        <Button x:Name="buttonReconnect" Content="Reconnect to server" Margin="298,0,349,10.2" Height="29" VerticalAlignment="Bottom"/>
     </Grid>
 </Window>

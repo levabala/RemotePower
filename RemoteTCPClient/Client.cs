@@ -22,7 +22,7 @@ namespace RemoteTCPClient
         public delegate void PowerMessageProcessedHandler(object sender, PowerMessage mess);
         public event PowerMessageProcessedHandler OnPowerMessageProcessed;
 
-        public delegate void TasksListGotHandler(object sender, PowerTasksDictionary dictionary);
+        public delegate void TasksListGotHandler(object sender, Dictionary<string, PowerTaskFunc> dictionary);
         public event TasksListGotHandler OnTasksListGot;
 
         public delegate void TaskFinishedHandler(object sender, PowerTask task, PowerMessage mess, bool success);
@@ -35,7 +35,7 @@ namespace RemoteTCPClient
         public event ErrorHandler OnError;
 
 
-        public PowerTasksDictionary availableTasks = new PowerTasksDictionary();
+        public Dictionary<string, PowerTaskFunc> availableTasks = new Dictionary<string, PowerTaskFunc>();
         public Dictionary<int, Action<int>> initTasksCallback = new Dictionary<int, Action<int>>();
         public Dictionary<int, Action<PowerTaskResult>> runningTasksComplete = new Dictionary<int, Action<PowerTaskResult>>();
         public Dictionary<int, Action<PowerTaskResult>> runningTasksResult= new Dictionary<int, Action<PowerTaskResult>>();
@@ -247,7 +247,7 @@ namespace RemoteTCPClient
                         if (mess.details != Details.OK)
                             break;
 
-                        availableTasks = (PowerTasksDictionary)mess.value;
+                        availableTasks = (Dictionary<string, PowerTaskFunc>)mess.value;
                         OnTasksListGot(this, availableTasks);
                         break;
                     case MessageType.TaskInitResult:
