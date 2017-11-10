@@ -197,7 +197,8 @@ namespace RemoteTCPClient
                 PowerMessage mess;
                 try
                 {
-                    mess = PowerMessage.Deserialize(stream);                    
+                    mess = PowerMessage.Deserialize(stream);
+                    //Console.WriteLine("{0}: {1} | {2}", mess.messType, mess.details, mess.value);
                 }
                 catch(IOException e)
                 {
@@ -302,7 +303,7 @@ namespace RemoteTCPClient
             new PowerMessage(MessageType.AuthInit, xmlPublicKey).Serialize(stream);
         }
 
-        public virtual void initTask(
+        public void initTask(
             string taskName, object[] args,
             Action<PowerTaskProgress> taskProgress, Action<PowerTaskResult> taskResult, Action<PowerTaskResult> taskCompleted,
             Action<PowerTaskError> taskError)
@@ -330,7 +331,7 @@ namespace RemoteTCPClient
             OnTaskInitialized(this, availableTasks[taskName], taskArgs);
             new PowerMessage(MessageType.TaskInit, taskArgs).Serialize(stream);
         }
-        public virtual void initTask(
+        public void initTask(
             string taskName, object[] args,
             Action<PowerTaskResult> taskComplete)
         {

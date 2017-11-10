@@ -52,15 +52,9 @@ namespace ListModeClientWPF
                 {
                     serverDrives = (string[])taskComplete.result;
                     if (DefaultDirectory == null)
-                        DefaultDirectory = serverDrives[0];
+                        DefaultDirectory = serverDrives[0];                    
 
-                    requestDirectory(DefaultDirectory);
-                });
-        }
-
-        public void requestDirectory(string path)
-        {
-            initTask("GetCurrentDirectoryTask", new object[] { path },
+                    initTask("GetCurrentDirectoryTask", new object[] { DefaultDirectory },
                         (taskProgress2) =>
                         {
 
@@ -72,13 +66,14 @@ namespace ListModeClientWPF
                         (taskComplete2) =>
                         {
                             serverDirectory = (FileSystemInfo[])taskComplete2.result;
-                            DefaultDirectory = path;                            
+                            //DefaultDirectory = path;
                             OnDirectoryGot(this, true);
                         },
                         (taskError2) =>
                         {
                             OnDirectoryGot(this, false);
                         });
+                });
         }
     }
 }
