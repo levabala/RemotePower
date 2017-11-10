@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ListModeClientWPF"
         mc:Ignorable="d"                
-        Title="RemotePowerClient" Height="428.757" Width="882.657">
+        Title="RemotePowerClient" Height="428.757" Width="1080.257">
     <Grid>
         <ListBox Name="listBoxAvailableTasks" Margin="10,36,0,9.6" HorizontalAlignment="Left" Width="140"/>
         <Label Content="AvailableTasks:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
@@ -22,8 +22,13 @@
         <TextBox x:Name="textBoxTaskOutput" IsReadOnly="True" Margin="0,90,10,69.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Right" Width="172" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
         <Label Content="Feedback:" Margin="0,64,92,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="90"/>
         <ProgressBar x:Name="progressBarRunningTask" Margin="0,0,10,44.6" Minimum="0" Maximum="100" Height="20" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="172"/>
-        <TextBox x:Name="textBoxErrors" Margin="300,36,349,44.2" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
+        <TextBox x:Name="textBoxErrors" Margin="299,36,0,44.2" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" ScrollViewer.VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" Width="214"/>
         <Label Content="Errors:" HorizontalAlignment="Left" Margin="300,10,0,0" VerticalAlignment="Top" Width="73"/>
-        <Button x:Name="buttonReconnect" Content="Reconnect to server" Margin="298,0,349,10.2" Height="29" VerticalAlignment="Bottom"/>
+        <Button x:Name="buttonReconnect" Content="Reconnect to server" Margin="298,0,0,10.2" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="215"/>
+        <Button Content="Copy Path" x:Name="buttonCopyChosenFilePath" Margin="518,0,348.6,9.2" Height="30" VerticalAlignment="Bottom"/>
+        <Label Content="Server FileTree:" Margin="518,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="124"/>
+        <TreeView x:Name="treeViewServerFileTree" Margin="518,64,348.6,44.2"/>
+        <Button Content="Up" x:Name="buttonServerPathGoUpper" HorizontalAlignment="Left" Margin="518,36,0,0" VerticalAlignment="Top" Width="75" Height="23"/>
+        <Button Content="Disk" x:Name="buttonChoseDisk" Margin="598,35,0,0" VerticalAlignment="Top" Height="24" HorizontalAlignment="Left" Width="75"/>
     </Grid>
 </Window>
