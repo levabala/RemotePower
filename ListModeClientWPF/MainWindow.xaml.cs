@@ -63,7 +63,7 @@ namespace ListModeClientWPF
             client.OnTaskInitialized += Client_OnTaskInitialized;
             client.OnTaskFinished += Client_OnTaskFinished;
             client.OnError += Client_OnError;
-            client.OnDirectoryGot += Client_OnDirectoryGot;
+            client.OnDirectoryGot += Client_OnDirectoryGot;            
 
             //start
             client.init(/*type your server ip&port here*/);
@@ -71,7 +71,15 @@ namespace ListModeClientWPF
 
         private void Client_OnDirectoryGot(object sender, bool success)
         {
-            
+            treeViewServerFileTree.Items.Clear();
+            TreeViewItem errorItem = new TreeViewItem();
+            errorItem.Header = "Invalid or non-existing path";
+            treeViewServerFileTree.Items.Add(errorItem);
+            if (!success)
+            {
+                
+                return;
+            }
         }
 
         private void ButtonReconnect_Click(object sender, RoutedEventArgs e)
@@ -117,7 +125,7 @@ namespace ListModeClientWPF
             client.initTask(taskNameToRun, args,
                 (t) =>
                 {
-                    runOnUIThread(() => { progressBarRunningTask.Value = t.progress; });
+                    
                 },
                 (t) =>
                 {
@@ -139,7 +147,7 @@ namespace ListModeClientWPF
             {
                 switch (mess.messType)
                 {
-                    case MessageType.TasksList:                    
+                    case MessageType.TasksList:
                         listBoxAvailableTasks.Items.Clear();
                         foreach (PowerTaskFunc taskFunc in client.availableTasks.Values)
                         {
@@ -150,8 +158,8 @@ namespace ListModeClientWPF
                                 textBoxChosenTaskToRun.Text = taskNameToRun = taskFunc.taskName;
                             };
                             listBoxAvailableTasks.Items.Add(item);
-                        }                    
-                        break;                    
+                        }
+                        break;
                     case MessageType.TaskResult:
                         int valuesCount = 0;
                         PowerTaskResult res = (PowerTaskResult)mess.value;
@@ -165,7 +173,24 @@ namespace ListModeClientWPF
                             textBoxTaskOutput.ScrollToEnd();
                         }
                         break;
-                }
+                    case MessageType.TaskProgress:
+                        PowerTaskProgress progress = (PowerTaskProgress)mess.value;
+                        if (watchingTaskId == progress.taskId)
+                            progressBarRunningTask.Value = progress.progress * 100;
+                        break;
+                    default:
+                        bool itIs = mess.value is PowerTask;
+                        if (itIs) {
+                            PowerTask task = (PowerTask)mess.value;
+                            Console.WriteLine("{0}: {1} | {2}", mess.messType, mess.value, task.taskName);
+                            if (!tasksStack.ContainsKey(task.taskId))
+                                return;
+                            tasksStack[task.taskId] += mess.details.ToString();
+                            textBoxTaskOutput.Text = tasksStack[task.taskId];
+                            textBoxTaskOutput.ScrollToEnd();
+                        }
+                        break;
+                    }                
             });
         }
 
@@ -173,48 +198,64 @@ namespace ListModeClientWPF
         {
             runOnUIThread(() =>
             {
-                foreach (var item in listBoxRunningTasks.Items)
-                    if (item.ToString().Split(':').Skip(2).ToString() == watchingTaskId.ToString()) //костыыыыыыыыыыыль
-                        listBoxRunningTasks.Items.Remove(item);
-
-                tasksStack.Remove(task.taskId);
-
-                if (tasksStack.Count == 0)
-                    watchingTaskId = -1;
-                else
+                lock (listBoxRunningTasks)
                 {
-                    watchingTaskId = tasksStack.Keys.First();
-                    int index = 0;
                     foreach (var item in listBoxRunningTasks.Items)
+                        if (((TaskItem)item).taskId == task.taskId)
+                        {
+                            listBoxRunningTasks.Items.Remove(item);
+                            break;
+                        }
+
+                    tasksStack.Remove(task.taskId);
+
+                    if (tasksStack.Count == 0)
+                        watchingTaskId = -1;
+                    else
                     {
-                        if (item.ToString().Split(':').Skip(2).ToString() == watchingTaskId.ToString()) //костыыыыыыыыыыыль
-                            listBoxRunningTasks.SelectedIndex = index;
-                        index++;
+                        watchingTaskId = tasksStack.Keys.First();
+                        int index = 0;
+                        foreach (var item in listBoxRunningTasks.Items)
+                        {
+                            if (((TaskItem)item).taskId == watchingTaskId)
+                                listBoxRunningTasks.SelectedIndex = index;
+                            index++;
+                        }
                     }
-                }                
+                }
             });
         }
 
         private void Client_OnTaskInitialized(object sender, PowerTaskFunc taskFunc, PowerTaskArgs taskArgs)
-        {
-            tasksStack.Add(taskArgs.taskId, taskArgs.taskName + "\n");
-
+        {            
             runOnUIThread(() =>
             {
-                ListBoxItem item = new ListBoxItem();
-                item.Content = "id" + taskArgs.taskId.ToString() + ": " + taskArgs.taskName;
-                item.PreviewMouseDown += (it, arg) =>
+                lock (listBoxRunningTasks)
                 {
-                    textBoxChosenTaskToRun.Text = taskArgs.taskName;
-                    watchingTaskId = taskArgs.taskId;
-                    textBoxTaskOutput.Text = tasksStack[taskArgs.taskId];
-                };
-                listBoxRunningTasks.Items.Add(item);
+                    tasksStack.Add(taskArgs.taskId, taskArgs.taskName + "\n");
 
-                if (watchingTaskId == -1)                
-                    watchingTaskId = taskArgs.taskId;                 
-                if (listBoxRunningTasks.Items.Count == 1)
-                    listBoxRunningTasks.SelectedIndex = 0;
+                    TaskItem item = new TaskItem(taskArgs);
+                    item.PreviewMouseDown += (it, arg) =>
+                    {
+                        if (!tasksStack.ContainsKey(item.taskId))
+                            return;
+                        textBoxChosenTaskToRun.Text = item.taskName;
+                        watchingTaskId = item.taskId;
+                        textBoxTaskOutput.Text = tasksStack[item.taskId];
+                    };
+                    item.Loaded += (it, e) =>
+                    {
+                        if (!tasksStack.ContainsKey(item.taskId))
+                            listBoxRunningTasks.Items.Remove(item);
+                    };
+
+                    listBoxRunningTasks.Items.Add(item);
+
+                    if (watchingTaskId == -1)
+                        watchingTaskId = taskArgs.taskId;
+                    if (listBoxRunningTasks.Items.Count == 1)
+                        listBoxRunningTasks.SelectedIndex = 0;
+                }
             });
         }
 
@@ -229,6 +270,24 @@ namespace ListModeClientWPF
             base.OnClosed(e);
             client.ShutDown();
             Application.Current.Shutdown();
+        }
+
+        private class TaskItem : Label
+        {            
+            public int taskId;
+            public string taskName;
+
+            public TaskItem(int taskId, string taskName)                
+            {
+                this.taskId = taskId;
+                this.taskName = taskName;
+                Content = String.Format("id({0}): {1}", taskId, taskName);
+            }
+            public TaskItem(PowerTask powerTask)
+                : this(powerTask.taskId, powerTask.taskName)
+            {
+
+            }
         }
     }
 }
