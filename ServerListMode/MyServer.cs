@@ -52,6 +52,8 @@ namespace ServerListMode
                     FileSystemInfo[] info = new FileSystemInfo[files.Length + directories.Length];
                     int index = 0;
                     int progressStep = info.Length / 100;
+                    if (progressStep == 0)
+                        progressStep = 1;
 
                     foreach (string p in files)
                     {
