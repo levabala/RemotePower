@@ -44,5 +44,19 @@ namespace RemoteTCPServer
             this.outputType = outputType;
             inputTypes = new Type[] { inputType };
         }
+
+        public PowerTaskFunc(
+            string taskName,
+            Action<PowerTaskArgs, Action<PowerTaskProgress>, Action<PowerTaskResult>, Action<PowerTaskResult>, Action<PowerTaskError>> func,
+            Type outputType,            
+            string discription = "")
+            //: this(taskName, func, discription)
+            : base(taskName)
+        {
+            this.func = func;
+            this.discription = discription;
+            this.outputType = outputType;
+            inputTypes = new Type[0];
+        }
     }
 }

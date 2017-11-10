@@ -17,8 +17,11 @@ namespace RemoteTCPServer
     {
         public delegate void UserRegisteredHandler(object sender, User user);
         public event UserRegisteredHandler OnUserRegisteredFinished;
-
-        public static Dictionary<string, PowerTaskFunc> availableTasks;        
+        
+        public abstract Dictionary<string, PowerTaskFunc> AvailableTasks
+        {
+            get;
+        }
         public Dictionary<int, PowerTaskThread> runningTasks = new Dictionary<int, PowerTaskThread>();
         public Dictionary<string, User> users;
         public Dictionary<string, Dictionary<int, PowerTaskThread>> usersTasks = new Dictionary<string, Dictionary<int, PowerTaskThread>>();
@@ -29,9 +32,7 @@ namespace RemoteTCPServer
         
         public Server(int port)
         {
-            OnUserRegisteredFinished += (a, b) => { };
-
-            availableTasks = CreateTasks();
+            OnUserRegisteredFinished += (a, b) => { };            
 
             this.port = port;            
             registrate = defaultRegistration;
@@ -264,7 +265,7 @@ namespace RemoteTCPServer
                                 break;
                             }
 
-                            new PowerMessage(MessageType.TasksList, availableTasks, Details.OK).Serialize(stream);
+                            new PowerMessage(MessageType.TasksList, AvailableTasks, Details.OK).Serialize(stream);
                             break;
                     }
                 }
@@ -280,7 +281,7 @@ namespace RemoteTCPServer
 
         private void initTask(PowerTaskArgs taskArgs, NetworkStream stream, User user)
         {
-            if (!availableTasks.ContainsKey(taskArgs.taskName))
+            if (!AvailableTasks.ContainsKey(taskArgs.taskName))
             {
                 new PowerMessage(MessageType.TaskInitResult, taskArgs.taskId, Details.NoSuchTask).Serialize(stream);
                 return;
@@ -317,7 +318,7 @@ namespace RemoteTCPServer
 
             PowerTaskThread powerThread = new PowerTaskThread(id, taskArgs.taskName, new Thread(() =>
             {
-                PowerTaskFunc powerTaskFunc = availableTasks[taskArgs.taskName];
+                PowerTaskFunc powerTaskFunc = AvailableTasks[taskArgs.taskName];
                 try
                 {
                     powerTaskFunc.func(taskArgs, progressCallback, resultCallback, completeCallback, errorCallback);
@@ -333,9 +334,7 @@ namespace RemoteTCPServer
 
             //new int[] {task.taskId, id} - here we put 1st is ClientTaskId and 2nd is ServerTaskId
             new PowerMessage(MessageType.TaskInitResult, new PowerTaskIds(id, taskArgs.taskName, taskArgs.taskId), Details.Accepted).Serialize(stream);
-        }
-
-        protected abstract Dictionary<string, PowerTaskFunc> CreateTasks();
+        }        
 
         public class ByteArrayComparer : IEqualityComparer<byte[]>
         {

@@ -302,7 +302,7 @@ namespace RemoteTCPClient
             new PowerMessage(MessageType.AuthInit, xmlPublicKey).Serialize(stream);
         }
 
-        public void initTask(
+        public virtual void initTask(
             string taskName, object[] args,
             Action<PowerTaskProgress> taskProgress, Action<PowerTaskResult> taskResult, Action<PowerTaskResult> taskCompleted,
             Action<PowerTaskError> taskError)
@@ -322,6 +322,33 @@ namespace RemoteTCPClient
                 runningTasksComplete[idd] = taskCompleted;
                 runningTasksError[idd] = taskError;
                 runningTasksProgress[idd] = taskProgress;
+            };
+
+
+            PowerTaskArgs taskArgs = new PowerTaskArgs(id, taskName, args);
+
+            OnTaskInitialized(this, availableTasks[taskName], taskArgs);
+            new PowerMessage(MessageType.TaskInit, taskArgs).Serialize(stream);
+        }
+        public virtual void initTask(
+            string taskName, object[] args,
+            Action<PowerTaskResult> taskComplete)
+        {
+            if (!authorized)
+                throw new Exception("The client wasn't authorized");
+            if (!availableTasks.ContainsKey(taskName))
+                throw new Exception("No such task");
+
+            int id = 0;
+            while (initTasksCallback.ContainsKey(id))
+                id++;
+
+            initTasksCallback[id] = (idd) =>
+            {
+                runningTasksResult[idd] = (a) => { };
+                runningTasksComplete[idd] = taskComplete;
+                runningTasksError[idd] = (a) => { };
+                runningTasksProgress[idd] = (a) => { };
             };
 
 

@@ -47,7 +47,8 @@ namespace ListModeClientWPF
             taskNameToRun = "";
             tasksStack = new Dictionary<int, string>();
 
-            client = new MyClient();            
+            client = new MyClient();
+            //client.clearConfiguration();
             if (!client.restoreConfiguration())
             {
                 InputDialog dialog = new InputDialog();
@@ -61,10 +62,16 @@ namespace ListModeClientWPF
             client.OnPowerMessageProcessed += Client_OnPowerMessageProcessed;
             client.OnTaskInitialized += Client_OnTaskInitialized;
             client.OnTaskFinished += Client_OnTaskFinished;
-            client.OnError += Client_OnError;                        
+            client.OnError += Client_OnError;
+            client.OnDirectoryGot += Client_OnDirectoryGot;
 
             //start
             client.init(/*type your server ip&port here*/);
+        }
+
+        private void Client_OnDirectoryGot(object sender, bool success)
+        {
+            
         }
 
         private void ButtonReconnect_Click(object sender, RoutedEventArgs e)
@@ -84,24 +91,8 @@ namespace ListModeClientWPF
 
         private void Client_OnTasksListGot(object sender, Dictionary<string, PowerTaskFunc> dictionary)
         {
-            //let's force it                        
-            client.initTask("SummatorCPUTask", new object[] { @"-raw U:\2017\October\012616\012616_raw.001 -det 0".Split(' ') },
-                (PowerTaskProgress t) =>
-                {
-                    runOnUIThread(() => { progressBarRunningTask.Value = t.progress; });
-                },
-                (PowerTaskResult t) =>
-                {
-                    
-                },
-                (PowerTaskResult t) =>
-                {
-
-                },
-                (PowerTaskError t) =>
-                {
-
-                });
+            //let's force it  
+            //initTask("SummatorCPUTask", @"-raw U:\2017\October\012616\012616_raw.001 -det 0".Split(' '));            
         }
 
         private void Client_OnError(object sender, string discription, Exception e)
@@ -115,23 +106,28 @@ namespace ListModeClientWPF
 
         private void ButtonRunTask_Click(object sender, RoutedEventArgs e)
         {
-            if (!client.availableTasks.ContainsKey(taskNameToRun))
+            initTask(taskNameToRun, textBoxTaskArgs.Text.Split(' '));
+        }
+
+        private void initTask(string taskName, object[] args)
+        {
+            if (!client.availableTasks.ContainsKey(taskName))
                 return;
 
-            client.initTask(taskNameToRun, new object[] { textBoxTaskArgs.Text.Split(' ') },
-                (PowerTaskProgress t) =>
+            client.initTask(taskNameToRun, args,
+                (t) =>
                 {
                     runOnUIThread(() => { progressBarRunningTask.Value = t.progress; });
                 },
-                (PowerTaskResult t) =>
+                (t) =>
                 {
 
                 },
-                (PowerTaskResult t) =>
+                (t) =>
                 {
 
                 },
-                (PowerTaskError t) =>
+                (t) =>
                 {
 
                 });
@@ -175,23 +171,28 @@ namespace ListModeClientWPF
 
         private void Client_OnTaskFinished(object sender, PowerTask task, PowerMessage mess, bool success)
         {
-            tasksStack.Remove(task.taskId);
-            if (watchingTaskId != task.taskId)
-                return;
-
-            if (tasksStack.Count == 0)
-                watchingTaskId = -1;
-            else
+            runOnUIThread(() =>
             {
-                watchingTaskId = tasksStack.Keys.First();
-                int index = 0;
                 foreach (var item in listBoxRunningTasks.Items)
-                {
                     if (item.ToString().Split(':').Skip(2).ToString() == watchingTaskId.ToString()) //костыыыыыыыыыыыль
-                        listBoxRunningTasks.SelectedIndex = index;
-                    index++;
-                }
-            }
+                        listBoxRunningTasks.Items.Remove(item);
+
+                tasksStack.Remove(task.taskId);
+
+                if (tasksStack.Count == 0)
+                    watchingTaskId = -1;
+                else
+                {
+                    watchingTaskId = tasksStack.Keys.First();
+                    int index = 0;
+                    foreach (var item in listBoxRunningTasks.Items)
+                    {
+                        if (item.ToString().Split(':').Skip(2).ToString() == watchingTaskId.ToString()) //костыыыыыыыыыыыль
+                            listBoxRunningTasks.SelectedIndex = index;
+                        index++;
+                    }
+                }                
+            });
         }
 
         private void Client_OnTaskInitialized(object sender, PowerTaskFunc taskFunc, PowerTaskArgs taskArgs)
@@ -210,11 +211,10 @@ namespace ListModeClientWPF
                 };
                 listBoxRunningTasks.Items.Add(item);
 
-                if (watchingTaskId == -1)
-                {
-                    watchingTaskId = taskArgs.taskId;
+                if (watchingTaskId == -1)                
+                    watchingTaskId = taskArgs.taskId;                 
+                if (listBoxRunningTasks.Items.Count == 1)
                     listBoxRunningTasks.SelectedIndex = 0;
-                }
             });
         }
 

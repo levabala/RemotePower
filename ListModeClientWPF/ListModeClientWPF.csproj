@@ -36,6 +36,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -114,6 +115,10 @@
     <ProjectReference Include="..\RemoteTCPServe\RemoteTCPServer.csproj">
       <Project>{32622c42-d0c6-4bbf-8a52-1fdaae4eac9c}</Project>
       <Name>RemoteTCPServer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ServerListMode\RemoteListModeServer.csproj">
+      <Project>{4a051c14-0c1c-41b4-bcf9-61de7931ece4}</Project>
+      <Name>RemoteListModeServer</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
