@@ -46,6 +46,8 @@ namespace ServerListMode
                 (taskArgs, progress, result, complete, error) =>
                 {
                     string path = (string)taskArgs.args[0];
+                    path = Path.GetFullPath(path);
+                    path = path.Replace("Documents and Settings", "users");
                     string[] files = Directory.GetFiles(path);
                     string[] directories = Directory.GetDirectories(path);
 

@@ -8,9 +8,7 @@ namespace RemoteTCPServer
 {
     [Serializable]
     public class PowerTaskError : PowerTask
-    {
-        public int taskId;
-        public string taskName;
+    {        
         public bool fatal;
         public DateTime TimeStamp { get; set; }
         public string Message { get; set; }

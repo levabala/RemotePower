@@ -281,6 +281,7 @@ namespace RemoteTCPServer
 
         private void initTask(PowerTaskArgs taskArgs, NetworkStream stream, User user)
         {
+            Console.WriteLine("Initializing {0}", taskArgs.taskName);
             if (!AvailableTasks.ContainsKey(taskArgs.taskName))
             {
                 new PowerMessage(MessageType.TaskInitResult, taskArgs.taskId, Details.NoSuchTask).Serialize(stream);
@@ -294,16 +295,19 @@ namespace RemoteTCPServer
             Action<PowerTaskResult> resultCallback = (taskpower) =>
             {
                 //runningTasks.Remove(taskpower.taskId);
+                Console.WriteLine("{0}: Resulted", taskpower.taskName);
                 new PowerMessage(MessageType.TaskResult, taskpower).Serialize(stream);
             };
             Action<PowerTaskResult> completeCallback = (taskpower) =>
             {
+                Console.WriteLine("{0}: Completed", taskpower.taskName);
                 runningTasks.Remove(taskpower.taskId);
                 usersTasks[user.publicKey].Remove(taskpower.taskId);
                 new PowerMessage(MessageType.TaskComplete, taskpower).Serialize(stream);
             };
             Action<PowerTaskError> errorCallback = (taskpower) =>
-            {
+            {                
+                Console.WriteLine("{0}: Error\n\t{1}", taskpower.taskName, taskpower.Message);
                 if (taskpower.fatal)
                 {
                     runningTasks.Remove(taskpower.taskId);
@@ -321,6 +325,7 @@ namespace RemoteTCPServer
                 PowerTaskFunc powerTaskFunc = AvailableTasks[taskArgs.taskName];
                 try
                 {
+                    taskArgs.taskId = id;
                     powerTaskFunc.func(taskArgs, progressCallback, resultCallback, completeCallback, errorCallback);
                 }
                 catch (Exception e)
@@ -333,6 +338,7 @@ namespace RemoteTCPServer
             powerThread.thread.Start();
 
             //new int[] {task.taskId, id} - here we put 1st is ClientTaskId and 2nd is ServerTaskId
+            Console.WriteLine("-----------------TaskInitResult----------- {0} {1}", taskArgs.taskName, id);
             new PowerMessage(MessageType.TaskInitResult, new PowerTaskIds(id, taskArgs.taskName, taskArgs.taskId), Details.Accepted).Serialize(stream);
         }        
 

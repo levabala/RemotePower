@@ -43,7 +43,7 @@ namespace RemoteTCPServer
             try
             {
                 new BinaryFormatter().Serialize(stream, this);
-                Console.WriteLine("{0}: {1} | {2}", messType, details, value);
+                //Console.WriteLine("{0}: {1} | {2}", messType, details, value);
             }
             catch (Exception e)
             {
