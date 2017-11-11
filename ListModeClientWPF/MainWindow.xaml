@@ -29,9 +29,9 @@
         <Button x:Name="buttonReconnect" Content="Reconnect to server" Margin="298,0,0,10.2" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="215"/>
         <Button Content="Copy Path" x:Name="buttonCopyChosenFilePath" Margin="518,0,348.6,9.2" Height="30" VerticalAlignment="Bottom"/>
         <Label Content="Server FileTree:" Margin="518,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="124"/>
-        <TreeView x:Name="treeViewServerFileTree" Margin="518,92,348.6,44.2"/>
+        <ListBox x:Name="listboxServerDirectory" Margin="518,92,348.6,44.2"/>
         <Button Content="Up" x:Name="buttonServerPathGoUpper" HorizontalAlignment="Left" Margin="518,36,0,0" VerticalAlignment="Top" Width="75" Height="23"/>
         <Button Content="Disk" x:Name="buttonChoseDisk" Margin="598,35,0,0" VerticalAlignment="Top" Height="24" HorizontalAlignment="Left" Width="75"/>
-        <TextBox x:Name="textBoxCurrentPath" IsReadOnly="True" Height="23" Margin="518,64,348.6,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991"/>
+        <TextBox x:Name="textBoxCurrentPath" IsReadOnly="True" Height="23" Margin="518,64,348.6,0" TextWrapping="Wrap" Text="\\" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991"/>
     </Grid>
 </Window>

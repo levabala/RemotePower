@@ -28,7 +28,7 @@ namespace RemoteTCPClient
         public delegate void TaskFinishedHandler(object sender, PowerTask task, PowerMessage mess, bool success);
         public event TaskFinishedHandler OnTaskFinished;
 
-        public delegate void TaskInitializedHandler(object sender, PowerTaskFunc taskFunc, PowerTaskArgs taskArgs);
+        public delegate void TaskInitializedHandler(object sender, PowerTaskFunc taskFunc, PowerTaskIds taskIds);
         public event TaskInitializedHandler OnTaskInitialized;
 
         public delegate void ErrorHandler(object sender, string discription, Exception e);
@@ -257,7 +257,11 @@ namespace RemoteTCPClient
 
                         PowerTaskIds ids = (PowerTaskIds)mess.value;
 
-                        if (initTasksCallback.ContainsKey(ids.clientId))
+                        OnTaskInitialized(this, availableTasks[ids.taskName], ids);
+
+                        bool callbackExists = initTasksCallback.ContainsKey(ids.clientId);
+                        Console.WriteLine("TaskInitResult.CallbackExists: {0}", callbackExists);
+                        if (callbackExists)
                         {
                             initTasksCallback[ids.clientId](ids.taskId);
                             //Console.WriteLine("Task \"{2}{0}\" initialized as \"{2}{1}\" on server", ids.clientId, ids.taskId, ids.taskName);
@@ -278,8 +282,15 @@ namespace RemoteTCPClient
                         break;
                     case MessageType.TaskComplete:
                         PowerTaskResult taskComplete = (PowerTaskResult)mess.value;
-                        if (runningTasksComplete.ContainsKey(taskComplete.taskId))
+                        Console.WriteLine("TaskComplete: {0}", taskComplete.taskName);                        
+                        bool callbackFound = runningTasksComplete.ContainsKey(taskComplete.taskId);
+                        Console.WriteLine("Callback found: {0}", callbackFound);
+                        if (callbackFound)
                             runningTasksComplete[taskComplete.taskId](taskComplete);
+                        else
+                        {
+
+                        }
                         OnTaskFinished(this, taskComplete, mess, false);
                         break;
                     case MessageType.TaskResult:
@@ -308,6 +319,7 @@ namespace RemoteTCPClient
             Action<PowerTaskProgress> taskProgress, Action<PowerTaskResult> taskResult, Action<PowerTaskResult> taskCompleted,
             Action<PowerTaskError> taskError)
         {
+            Console.WriteLine("InitTask: {0}", taskName);
             if (!authorized)
                 throw new Exception("The client wasn't authorized");
             if (!availableTasks.ContainsKey(taskName))
@@ -316,6 +328,8 @@ namespace RemoteTCPClient
             int id = 0;
             while (initTasksCallback.ContainsKey(id))
                 id++;
+
+            Console.WriteLine("Task ID: {0}", id);
 
             initTasksCallback[id] = (idd) =>
             {
@@ -327,14 +341,15 @@ namespace RemoteTCPClient
 
 
             PowerTaskArgs taskArgs = new PowerTaskArgs(id, taskName, args);
-
-            OnTaskInitialized(this, availableTasks[taskName], taskArgs);
+            
             new PowerMessage(MessageType.TaskInit, taskArgs).Serialize(stream);
         }
         public void initTask(
             string taskName, object[] args,
             Action<PowerTaskResult> taskComplete)
         {
+            Console.WriteLine("TaskInitializing: {0}", taskName);
+
             if (!authorized)
                 throw new Exception("The client wasn't authorized");
             if (!availableTasks.ContainsKey(taskName))
@@ -343,6 +358,8 @@ namespace RemoteTCPClient
             int id = 0;
             while (initTasksCallback.ContainsKey(id))
                 id++;
+
+            Console.WriteLine("Task ID: {0}", id);
 
             initTasksCallback[id] = (idd) =>
             {
@@ -355,7 +372,7 @@ namespace RemoteTCPClient
 
             PowerTaskArgs taskArgs = new PowerTaskArgs(id, taskName, args);
 
-            OnTaskInitialized(this, availableTasks[taskName], taskArgs);
+            
             new PowerMessage(MessageType.TaskInit, taskArgs).Serialize(stream);
         }
     }

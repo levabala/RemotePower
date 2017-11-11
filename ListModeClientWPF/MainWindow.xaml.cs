@@ -15,6 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.VisualBasic;
+using System.IO;
 
 namespace ListModeClientWPF
 {
@@ -32,10 +33,16 @@ namespace ListModeClientWPF
         {
             InitializeComponent();
 
+            //--------------------------------------
+            //TODO: Create ComboBox for Drives
+            //--------------------------------------
+
+
             initClient();
 
             buttonRunTask.Click += ButtonRunTask_Click;
             buttonReconnect.Click += ButtonReconnect_Click;
+            buttonServerPathGoUpper.Click += (it, e) => client.changeDirectoryUpper();
         }
 
         public void initClient()
@@ -67,19 +74,103 @@ namespace ListModeClientWPF
 
             //start
             client.init(/*type your server ip&port here*/);
+
+            listboxServerDirectory.PreviewKeyUp += (it, e) =>
+            {
+                switch (e.Key)
+                {                    
+                    case Key.Left:
+                        client.changeDirectoryUpper();                                                
+
+                        break;
+                }
+            };
         }
 
         private void Client_OnDirectoryGot(object sender, bool success)
         {
-            treeViewServerFileTree.Items.Clear();
-            TreeViewItem errorItem = new TreeViewItem();
-            errorItem.Header = "Invalid or non-existing path";
-            treeViewServerFileTree.Items.Add(errorItem);
-            if (!success)
+            runOnUIThread(() =>
             {
-                
-                return;
-            }
+                textBoxCurrentPath.Text = client.CurrentDirectory;
+                textBoxCurrentPath.ScrollToEnd();
+
+                listboxServerDirectory.Items.Clear();
+                if (!success)
+                {
+                    TreeViewItem errorItem = new TreeViewItem();
+                    errorItem.Header = "Invalid or non-existing path";
+                    listboxServerDirectory.Items.Add(errorItem);
+                    listboxServerDirectory.Focus();
+                    return;
+                }
+
+                Array.Sort(client.serverDirectory, (p, q) => p.Name[0].CompareTo(q.Name[0]));
+
+                foreach (FileSystemInfo info in client.serverDirectory)
+                {
+
+                    ListBoxItem item = new ListBoxItem();
+                    item.Content = info.Name;
+                    if (info is DirectoryInfo)
+                        item.FontWeight = FontWeights.Bold;
+
+                    item.GotFocus += (it, e) =>
+                    {
+                        Clipboard.SetText(((ListBoxItem)it).Content.ToString());
+                    };
+
+                    Action<ListBoxItem> changeDirDeeper = (it) =>
+                    {
+                        if (it.FontWeight == FontWeights.Bold)
+                            client.changeDirectoryDeeper(it.Content.ToString());
+                    };
+
+                    item.PreviewMouseDoubleClick += (it, e) =>
+                    {
+                        changeDirDeeper(((ListBoxItem)it));
+                    };
+
+                    item.PreviewKeyUp += (it, e) =>
+                    {
+                        switch (e.Key)
+                        {
+                            case Key.Enter:
+                            case Key.Right:
+                                changeDirDeeper(((ListBoxItem)it));
+                                break;
+                        }
+                    };
+
+                    listboxServerDirectory.Items.Add(item);
+                }
+
+                if (listboxServerDirectory.Items.Count > 0)
+                {
+                    ListBoxItem item = (ListBoxItem)listboxServerDirectory.Items[0];
+
+                    /*string[] dirs = client.CurrentDirectory.Split(new string[] { "\\" }, StringSplitOptions.RemoveEmptyEntries);
+                    int walkingLevel = dirs.Length;
+
+                    if (client.walkingHistory.Count > walkingLevel)
+                        foreach (ListBoxItem i in listboxServerDirectory.Items)
+                            if (i.Content.ToString() == client.walkingHistory[walkingLevel])
+                            {
+                                item = i;
+                                break;
+                            }*/
+
+
+                    listboxServerDirectory.SelectedItem = item;
+                    listboxServerDirectory.UpdateLayout();
+
+                    var listBoxItem = (ListBoxItem)listboxServerDirectory
+                        .ItemContainerGenerator
+                        .ContainerFromItem(listboxServerDirectory.SelectedItem);
+
+                    if (listBoxItem != null)
+                        listBoxItem.Focus();
+                }
+            });
         }
 
         private void ButtonReconnect_Click(object sender, RoutedEventArgs e)
@@ -226,15 +317,15 @@ namespace ListModeClientWPF
             });
         }
 
-        private void Client_OnTaskInitialized(object sender, PowerTaskFunc taskFunc, PowerTaskArgs taskArgs)
+        private void Client_OnTaskInitialized(object sender, PowerTaskFunc taskFunc, PowerTaskIds taskIds)
         {            
             runOnUIThread(() =>
             {
                 lock (listBoxRunningTasks)
                 {
-                    tasksStack.Add(taskArgs.taskId, taskArgs.taskName + "\n");
+                    tasksStack.Add(taskIds.taskId, taskIds.taskName + "\n");
 
-                    TaskItem item = new TaskItem(taskArgs);
+                    TaskItem item = new TaskItem(taskIds);
                     item.PreviewMouseDown += (it, arg) =>
                     {
                         if (!tasksStack.ContainsKey(item.taskId))
@@ -252,7 +343,7 @@ namespace ListModeClientWPF
                     listBoxRunningTasks.Items.Add(item);
 
                     if (watchingTaskId == -1)
-                        watchingTaskId = taskArgs.taskId;
+                        watchingTaskId = taskIds.taskId;
                     if (listBoxRunningTasks.Items.Count == 1)
                         listBoxRunningTasks.SelectedIndex = 0;
                 }

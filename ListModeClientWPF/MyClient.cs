@@ -17,30 +17,34 @@ namespace ListModeClientWPF
 
         public FileSystemInfo[] serverDirectory;
         public string[] serverDrives;
-        private string defaultDirectory;
+        private string currentDirectory;
+
+        public List<string> walkingHistory = new List<string>();
 
         public MyClient()
             : base()
         {
             Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            var defaultDirectoryParam = conf.AppSettings.Settings["DefaultDirectory"];
-            if (defaultDirectoryParam != null)
-                defaultDirectory = defaultDirectoryParam.Value;
+            var currentDirectoryParam = conf.AppSettings.Settings["CurrentDirectory"];
+            //currentDirectoryParam = null;
+            if (currentDirectoryParam != null)
+                currentDirectory = currentDirectoryParam.Value;
 
             OnTasksListGot += MyClient_OnTasksListGot;
         }
 
-        public string DefaultDirectory
+        public string CurrentDirectory
         {
             get
             {
-                return defaultDirectory;
+                return currentDirectory;
             }
             set
             {
-                defaultDirectory = value;
+                currentDirectory = value;                
+
                 Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                conf.AppSettings.Settings.Add("DefaultDirectory", defaultDirectory);
+                conf.AppSettings.Settings.Add("CurrentDirectory", currentDirectory);
                 conf.Save();
             }            
         }
@@ -51,29 +55,51 @@ namespace ListModeClientWPF
                 (taskComplete) =>
                 {
                     serverDrives = (string[])taskComplete.result;
-                    if (DefaultDirectory == null)
-                        DefaultDirectory = serverDrives[0];                    
+                    if (currentDirectory == null)
+                        currentDirectory = serverDrives[0];
 
-                    initTask("GetCurrentDirectoryTask", new object[] { DefaultDirectory },
-                        (taskProgress2) =>
+                    changeDirectory(CurrentDirectory);
+                });
+        }
+
+        public void changeDirectoryDeeper(string folder)
+        {
+            walkingHistory.Add(folder);
+            changeDirectory(CurrentDirectory + "\\" + folder);
+        }
+
+        public void changeDirectoryUpper()
+        {
+            walkingHistory.RemoveAt(walkingHistory.Count - 1);
+            string[] dirs = CurrentDirectory.Split(new string[] { "\\" }, StringSplitOptions.RemoveEmptyEntries);
+            if (dirs.Length <= 1)
+                return;
+            dirs = dirs.Take(dirs.Length - 1).ToArray();
+            string newPath = String.Join("\\", dirs) + "\\";            
+            changeDirectory(newPath);
+        }
+
+        public void changeDirectory(string path)
+        {
+            initTask("GetCurrentDirectoryTask", new object[] { path },
+                        (taskProgress) =>
                         {
 
                         },
-                        (taskResult2) =>
+                        (taskResult) =>
                         {
 
                         },
-                        (taskComplete2) =>
-                        {
-                            serverDirectory = (FileSystemInfo[])taskComplete2.result;
-                            //DefaultDirectory = path;
-                            OnDirectoryGot(this, true);
+                        (taskComplete) =>
+                        {                            
+                            serverDirectory = (FileSystemInfo[])taskComplete.result;
+                            CurrentDirectory = path;
+                            OnDirectoryGot(this, true);                            
                         },
-                        (taskError2) =>
+                        (taskError) =>
                         {
                             OnDirectoryGot(this, false);
                         });
-                });
         }
     }
 }
