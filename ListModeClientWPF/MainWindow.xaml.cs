@@ -32,17 +32,28 @@ namespace ListModeClientWPF
         public MainWindow()
         {
             InitializeComponent();
-
-            //--------------------------------------
-            //TODO: Create ComboBox for Drives
-            //--------------------------------------
-
-
+            
             initClient();
 
             buttonRunTask.Click += ButtonRunTask_Click;
             buttonReconnect.Click += ButtonReconnect_Click;
             buttonServerPathGoUpper.Click += (it, e) => client.changeDirectoryUpper();
+            textBoxCurrentPath.KeyUp += (it, e) =>
+            {
+                if (e.Key == Key.Enter)
+                    client.changeDirectory(((TextBox)it).Text);
+            };            
+            gridServerDirectory.PreviewKeyUp += (it, e) =>
+            {
+                switch (e.Key)
+                {
+                    case Key.Left:
+                        client.changeDirectoryUpper();
+                        e.Handled = true;
+                        break;
+                }
+            };
+            gridServerDirectory.Focus();
         }
 
         public void initClient()
@@ -70,21 +81,31 @@ namespace ListModeClientWPF
             client.OnTaskInitialized += Client_OnTaskInitialized;
             client.OnTaskFinished += Client_OnTaskFinished;
             client.OnError += Client_OnError;
-            client.OnDirectoryGot += Client_OnDirectoryGot;            
+            client.OnDirectoryGot += Client_OnDirectoryGot;
+            client.OnDrivesGot += Client_OnDrivesGot;            
 
             //start
-            client.init(/*type your server ip&port here*/);
+            client.init(/*type your server ip&port here*/);                        
+        }
 
-            listboxServerDirectory.PreviewKeyUp += (it, e) =>
+        private void Client_OnDrivesGot(object sender, string[] drives)
+        {
+            runOnUIThread(() =>
             {
-                switch (e.Key)
-                {                    
-                    case Key.Left:
-                        client.changeDirectoryUpper();                                                
-
-                        break;
+                comboBoxDrives.Items.Clear();
+                string currentDrive = client.CurrentDirectory.Split(new string[] { "\\" }, StringSplitOptions.RemoveEmptyEntries)[0] + "\\";
+                foreach (string drive in drives)
+                {
+                    ComboBoxItem item = new ComboBoxItem();
+                    item.Content = drive;
+                    item.PreviewMouseLeftButtonDown += (it, e) => {
+                        client.changeDrive(((ComboBoxItem)it).Content.ToString());
+                    };
+                    comboBoxDrives.Items.Add(item);
+                    if (drive == currentDrive)
+                        comboBoxDrives.SelectedItem = item;
                 }
-            };
+            });
         }
 
         private void Client_OnDirectoryGot(object sender, bool success)
@@ -106,8 +127,9 @@ namespace ListModeClientWPF
 
                 Array.Sort(client.serverDirectory, (p, q) => p.Name[0].CompareTo(q.Name[0]));
 
+                //listboxServerDirectory.ItemsSource = client.serverDirectory;
                 foreach (FileSystemInfo info in client.serverDirectory)
-                {
+                {                    
 
                     ListBoxItem item = new ListBoxItem();
                     item.Content = info.Name;
@@ -116,7 +138,7 @@ namespace ListModeClientWPF
 
                     item.GotFocus += (it, e) =>
                     {
-                        Clipboard.SetText(((ListBoxItem)it).Content.ToString());
+                        Clipboard.SetText(client.CurrentDirectory + "\\" + ((ListBoxItem)it).Content.ToString());
                     };
 
                     Action<ListBoxItem> changeDirDeeper = (it) =>
@@ -141,24 +163,12 @@ namespace ListModeClientWPF
                         }
                     };
 
-                    listboxServerDirectory.Items.Add(item);
-                }
+                    listboxServerDirectory.Items.Add(item);                                        
+                }                
 
                 if (listboxServerDirectory.Items.Count > 0)
                 {
                     ListBoxItem item = (ListBoxItem)listboxServerDirectory.Items[0];
-
-                    /*string[] dirs = client.CurrentDirectory.Split(new string[] { "\\" }, StringSplitOptions.RemoveEmptyEntries);
-                    int walkingLevel = dirs.Length;
-
-                    if (client.walkingHistory.Count > walkingLevel)
-                        foreach (ListBoxItem i in listboxServerDirectory.Items)
-                            if (i.Content.ToString() == client.walkingHistory[walkingLevel])
-                            {
-                                item = i;
-                                break;
-                            }*/
-
 
                     listboxServerDirectory.SelectedItem = item;
                     listboxServerDirectory.UpdateLayout();
@@ -169,6 +179,12 @@ namespace ListModeClientWPF
 
                     if (listBoxItem != null)
                         listBoxItem.Focus();
+                }
+                else
+                {
+                    //i don't even know how it actually works
+                    Keyboard.Focus(gridServerDirectory);
+                    gridServerDirectory.Focus();
                 }
             });
         }
@@ -378,6 +394,38 @@ namespace ListModeClientWPF
                 : this(powerTask.taskId, powerTask.taskName)
             {
 
+            }
+        }
+
+        private class FileOrDirectoryInfo
+        {
+            public string Name, Size, CreationTime;
+            public FileOrDirectoryInfo(FileSystemInfo info)
+            {
+                Name = info.Name;
+                CreationTime = info.CreationTime.ToString("dd/MM/yyyy");
+                if (info is FileInfo)
+                {
+                    long bits = ((FileInfo)info).Length;
+                    long bytes = bits / 8;
+                    long KB = bytes / 1000;
+                    long MB = KB / 1000;
+                    long GB = MB / 1000;
+                    if (GB > 1)
+                        Size = GB.ToString() + "GB";
+                    else
+                        if (MB > 1)
+                        Size = MB.ToString() + "MB";
+                    else
+                        if (KB > 1)
+                        Size = KB.ToString() + "KB";
+                    else
+                        if (bytes > 1)
+                        Size = bytes.ToString() + "B";
+                    else
+                        Size = bits.ToString() + "b";
+                }
+                else Size = "";
             }
         }
     }

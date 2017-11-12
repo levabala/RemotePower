@@ -5,19 +5,20 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ListModeClientWPF"
         mc:Ignorable="d"                
-        Title="RemotePowerClient" Height="428.757" Width="1080.257">
+        WindowState="Maximized"
+        Title="RemotePowerClient" Height="677.957" Width="1179.457">
     <Grid>
         <ListBox Name="listBoxAvailableTasks" Margin="10,36,0,9.6" HorizontalAlignment="Left" Width="140"/>
         <Label Content="AvailableTasks:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-        <Button Content="Run" Name="buttonRunTask" Margin="0,0,187,9.6" Height="30" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="157"/>
-        <Label Content="Task to run:" HorizontalAlignment="Right" Margin="0,10,271,0" VerticalAlignment="Top" Width="73"/>
-        <TextBox Name="textBoxChosenTaskToRun" IsReadOnly="True" Height="23" Margin="0,36,187,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991" HorizontalAlignment="Right" Width="157"/>
+        <Button Content="Run" Name="buttonRunTask" Margin="0,0,186.8,10" Height="30" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="209"/>
+        <Label Content="Task to run:" HorizontalAlignment="Right" Margin="0,10,298.8,0" VerticalAlignment="Top" Width="97"/>
+        <TextBox Name="textBoxChosenTaskToRun" IsReadOnly="True" Height="23" Margin="0,36,186.8,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991" HorizontalAlignment="Right" Width="209"/>
         <ListBox Name="listBoxRunningTasks" Margin="155,36,0,9.6" HorizontalAlignment="Left" Width="140">
-            
+
         </ListBox>
         <Label Content="RunningTasks:" HorizontalAlignment="Left" Margin="155,10,0,0" VerticalAlignment="Top"/>
-        <TextBox Name="textBoxTaskArgs" Margin="0,90,187,44.6" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Right" Width="157" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
-        <Label Content="Arguments:" HorizontalAlignment="Right" Margin="0,64,271,0" VerticalAlignment="Top" Width="73"/>
+        <TextBox Name="textBoxTaskArgs" Margin="0,90,186.8,45" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" HorizontalAlignment="Right" Width="209" ScrollViewer.VerticalScrollBarVisibility="Visible"/>
+        <Label Content="Arguments:" HorizontalAlignment="Right" Margin="0,64,298.8,0" VerticalAlignment="Top" Width="97"/>
         <Button Content="Stop" x:Name="buttonStopTask" Margin="0,0,10,9.6" VerticalAlignment="Bottom" Height="30" HorizontalAlignment="Right" Width="172"/>
         <Label Content="Running task:" Margin="0,10,92,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="90"/>
         <TextBox x:Name="textBoxChosenRunningTask" IsReadOnly="True" Height="23" Margin="0,36,10,0" TextWrapping="Wrap" Text="No task" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991" HorizontalAlignment="Right" Width="172"/>
@@ -27,11 +28,30 @@
         <TextBox x:Name="textBoxErrors" Margin="299,36,0,44.2" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" ScrollViewer.VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" Width="214"/>
         <Label Content="Errors:" HorizontalAlignment="Left" Margin="300,10,0,0" VerticalAlignment="Top" Width="73"/>
         <Button x:Name="buttonReconnect" Content="Reconnect to server" Margin="298,0,0,10.2" Height="29" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="215"/>
-        <Button Content="Copy Path" x:Name="buttonCopyChosenFilePath" Margin="518,0,348.6,9.2" Height="30" VerticalAlignment="Bottom"/>
+        <Button Content="Copy Path" x:Name="buttonCopyChosenFilePath" Margin="518,0,400.8,9" Height="30" VerticalAlignment="Bottom"/>
         <Label Content="Server FileTree:" Margin="518,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="124"/>
-        <ListBox x:Name="listboxServerDirectory" Margin="518,92,348.6,44.2"/>
         <Button Content="Up" x:Name="buttonServerPathGoUpper" HorizontalAlignment="Left" Margin="518,36,0,0" VerticalAlignment="Top" Width="75" Height="23"/>
-        <Button Content="Disk" x:Name="buttonChoseDisk" Margin="598,35,0,0" VerticalAlignment="Top" Height="24" HorizontalAlignment="Left" Width="75"/>
-        <TextBox x:Name="textBoxCurrentPath" IsReadOnly="True" Height="23" Margin="518,64,348.6,0" TextWrapping="Wrap" Text="\\" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991"/>
+        <TextBox x:Name="textBoxCurrentPath" Height="23" Margin="518,64,400.8,0" TextWrapping="Wrap" Text="\\" VerticalAlignment="Top" RenderTransformOrigin="0.79,0.991"/>
+        <ComboBox x:Name="comboBoxDrives" HorizontalAlignment="Left" Margin="636,37,0,0" VerticalAlignment="Top" Width="44" IsReadOnly="True"/>
+        <Label Content="Drive:" HorizontalAlignment="Left" Margin="598,34,0,0" VerticalAlignment="Top"/>
+        <Grid x:Name="gridServerDirectory" Focusable="True" Margin="518,90,400.8,44">
+            <ListBox x:Name="listboxServerDirectory" Focusable="True" KeyboardNavigation.IsTabStop="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition  Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Name}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+        </Grid>
     </Grid>
 </Window>

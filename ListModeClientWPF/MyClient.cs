@@ -15,6 +15,9 @@ namespace ListModeClientWPF
         public delegate void DirectoryGotHandler(object sender, bool success);
         public event DirectoryGotHandler OnDirectoryGot;
 
+        public delegate void DrivesGotHandler(object sender, string[] drives);
+        public event DrivesGotHandler OnDrivesGot;
+
         public FileSystemInfo[] serverDirectory;
         public string[] serverDrives;
         private string currentDirectory;
@@ -26,9 +29,9 @@ namespace ListModeClientWPF
         {
             Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             var currentDirectoryParam = conf.AppSettings.Settings["CurrentDirectory"];
-            //currentDirectoryParam = null;
             if (currentDirectoryParam != null)
-                currentDirectory = currentDirectoryParam.Value;
+                if (Uri.IsWellFormedUriString(@"file:///" + currentDirectoryParam.Value.Replace("\\", "/"), UriKind.Absolute))
+                    currentDirectory = currentDirectoryParam.Value;
 
             OnTasksListGot += MyClient_OnTasksListGot;
         }
@@ -41,9 +44,10 @@ namespace ListModeClientWPF
             }
             set
             {
-                currentDirectory = value;                
+                currentDirectory = value.Replace(@"\\", @"\");                
 
                 Configuration conf = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                conf.AppSettings.Settings.Remove("CurrentDirectory");
                 conf.AppSettings.Settings.Add("CurrentDirectory", currentDirectory);
                 conf.Save();
             }            
@@ -58,22 +62,29 @@ namespace ListModeClientWPF
                     if (currentDirectory == null)
                         currentDirectory = serverDrives[0];
 
+                    OnDrivesGot(this, serverDrives);
                     changeDirectory(CurrentDirectory);
                 });
         }
 
-        public void changeDirectoryDeeper(string folder)
+        public void changeDrive(string drive)
         {
-            walkingHistory.Add(folder);
+            if (!serverDrives.Contains(drive))
+                return;
+            string newPath = drive;
+            changeDirectory(newPath);
+        }
+
+        public void changeDirectoryDeeper(string folder)
+        {            
             changeDirectory(CurrentDirectory + "\\" + folder);
         }
 
         public void changeDirectoryUpper()
-        {
-            walkingHistory.RemoveAt(walkingHistory.Count - 1);
+        {            
             string[] dirs = CurrentDirectory.Split(new string[] { "\\" }, StringSplitOptions.RemoveEmptyEntries);
-            if (dirs.Length <= 1)
-                return;
+            if (dirs.Length <= 1) 
+                return;            
             dirs = dirs.Take(dirs.Length - 1).ToArray();
             string newPath = String.Join("\\", dirs) + "\\";            
             changeDirectory(newPath);
@@ -98,7 +109,7 @@ namespace ListModeClientWPF
                         },
                         (taskError) =>
                         {
-                            OnDirectoryGot(this, false);
+                            //OnDirectoryGot(this, false);
                         });
         }
     }
